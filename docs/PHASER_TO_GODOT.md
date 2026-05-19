@@ -143,3 +143,60 @@ or use `Control` nodes for UI-style input.
 ### Phaser physics groups with callbacks
 Use `Area2D.BodyEntered` / `Area2D.AreaEntered` signals.
 For layer-based filtering, set `CollisionLayer` and `CollisionMask` bitmasks.
+
+---
+
+## C# Gotchas (discovered during PlumpyAdventures port)
+
+### Type ambiguity with `ImplicitUsings`
+ArcoreGameCore's `.csproj` enables `ImplicitUsings` which imports `System.Collections.Generic.*`.
+Several Godot types clash with System types — always use fully-qualified names:
+
+```csharp
+// Always qualify these:
+Godot.FileAccess.Open(...)
+Godot.FileAccess.ModeFlags.Read
+System.Collections.Generic.Dictionary<string, V> _cache = new();
+
+// These are unambiguous — no qualification needed:
+Array<Dictionary>     // Godot.Collections.Array/Dictionary (not System)
+GD.Load<Texture2D>()
+```
+
+### `GD.RandRange` not `GD.RandfRange`
+`GD.RandfRange` is the GDScript name. In C# it's `GD.RandRange(double, double)`:
+```csharp
+(float)GD.RandRange(0.0, 1.0)   // correct
+```
+
+### `FileAccess.GetLength()` returns `ulong`
+`GetBuffer(n)` takes `long` — always cast:
+```csharp
+file.GetBuffer((long)file.GetLength())
+```
+
+### Signals must be declared INSIDE the class
+```csharp
+// Bad — signal outside the class body causes SignalName.X to not exist at runtime
+[Signal] public delegate void DoneEventHandler();
+public partial class MyNode : Node { ... }
+
+// Good
+public partial class MyNode : Node {
+    [Signal] public delegate void DoneEventHandler();
+}
+```
+
+### Cancelling `SceneTreeTimer`
+`SceneTreeTimer` has no `Cancel()`. Use identity comparison instead:
+```csharp
+SceneTreeTimer? _timer;
+
+void ScheduleAction() {
+    var t = GetTree().CreateTimer(4.0);
+    _timer = t;
+    t.Timeout += () => { if (_timer == t) DoAction(); };
+}
+
+void CancelAction() { _timer = null; }   // next timeout fires but the guard skips it
+```

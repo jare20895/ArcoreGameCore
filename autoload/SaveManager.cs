@@ -28,7 +28,7 @@ public partial class SaveManager : Node
         data["version"] = ProjectSettings.GetSetting("application/config/version", "1.0").AsString();
 
         var path = string.Format(SaveFileFormat, slot);
-        using var file = FileAccess.Open(path, FileAccess.ModeFlags.Write);
+        using var file = Godot.FileAccess.Open(path, Godot.FileAccess.ModeFlags.Write);
         if (file == null)
         {
             GD.PushError($"SaveManager: failed to open {path} for writing");
@@ -36,17 +36,17 @@ public partial class SaveManager : Node
         }
 
         file.StoreString(Json.Stringify(data));
-        PlatformBridge.Instance?.SaveCloudFile(path, file.GetBuffer(file.GetLength()));
+        PlatformBridge.Instance?.SaveCloudFile(path, file.GetBuffer((long)file.GetLength()));
         EmitSignal(SignalName.SaveCompleted, slot);
     }
 
     public Dictionary? Load(int slot)
     {
         var path = string.Format(SaveFileFormat, slot);
-        if (!FileAccess.FileExists(path))
+        if (!Godot.FileAccess.FileExists(path))
             return null;
 
-        using var file = FileAccess.Open(path, FileAccess.ModeFlags.Read);
+        using var file = Godot.FileAccess.Open(path, Godot.FileAccess.ModeFlags.Read);
         if (file == null) return null;
 
         var json = new Json();
@@ -62,13 +62,13 @@ public partial class SaveManager : Node
 
     public bool SlotExists(int slot)
     {
-        return FileAccess.FileExists(string.Format(SaveFileFormat, slot));
+        return Godot.FileAccess.FileExists(string.Format(SaveFileFormat, slot));
     }
 
     public void DeleteSlot(int slot)
     {
         var path = string.Format(SaveFileFormat, slot);
-        if (FileAccess.FileExists(path))
+        if (Godot.FileAccess.FileExists(path))
             DirAccess.RemoveAbsolute(path);
     }
 }

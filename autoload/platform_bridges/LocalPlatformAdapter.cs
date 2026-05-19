@@ -13,9 +13,9 @@ public class LocalPlatformAdapter : IPlatformAdapter
 
     public void Initialize()
     {
-        if (FileAccess.FileExists(AchievementFile))
+        if (Godot.FileAccess.FileExists(AchievementFile))
         {
-            using var f = FileAccess.Open(AchievementFile, FileAccess.ModeFlags.Read);
+            using var f = Godot.FileAccess.Open(AchievementFile, Godot.FileAccess.ModeFlags.Read);
             var json = new Json();
             if (json.Parse(f.GetAsText()) == Error.Ok)
                 _unlocked = json.Data.AsGodotDictionary();
@@ -49,7 +49,7 @@ public class LocalPlatformAdapter : IPlatformAdapter
 
     private void Persist()
     {
-        using var f = FileAccess.Open(AchievementFile, FileAccess.ModeFlags.Write);
+        using var f = Godot.FileAccess.Open(AchievementFile, Godot.FileAccess.ModeFlags.Write);
         f.StoreString(Json.Stringify(_unlocked));
     }
 }

@@ -352,7 +352,7 @@ function cmdBlocked(manifest) {
   }
 }
 
-function cmdContext(manifest, id, assetsManifest) {
+function cmdContext(manifest, manifestPath, id, assetsManifest) {
   const c = manifest.components.find(x => x.id === id);
   if (!c) die(`Component not found: ${id}`);
 
@@ -493,28 +493,33 @@ function getMappingHints(type, sourceFile) {
     ],
     data: [
       'TypeScript const object → C# static class or Godot Resource (.tres)',
+      'Record<string, T[]> keyed data → JSON file + autoload C# loader using ConfigFile/Json',
       'Array of positions → Marker2D nodes placed in scene editor',
+      'localStorage key → ConfigFile saved to user://settings.cfg',
     ],
   };
   return [...(typeHints[type] || []), ...common];
 }
 
-function cmdSet(manifest, manifestPath, id, status) {
+// cmdSet accepts one or more component IDs: set <id1> [id2...] <status>
+function cmdSet(manifest, manifestPath, ids, status) {
   const validStatuses = ['pending', 'in-progress', 'done', 'blocked', 'skipped', 'framework'];
   if (!validStatuses.includes(status)) {
     die(`Invalid status "${status}". Valid: ${validStatuses.join(', ')}`);
   }
 
-  const c = manifest.components.find(x => x.id === id);
-  if (!c) die(`Component not found: ${id}`);
-
-  const oldStatus = c.status;
-  c.status = status;
-  c.last_updated = new Date().toISOString().split('T')[0];
-  manifest.last_updated = c.last_updated;
-
+  const today = new Date().toISOString().split('T')[0];
+  for (const id of ids) {
+    const c = manifest.components.find(x => x.id === id);
+    if (!c) { console.error(`${RED}Not found:${RESET} ${id}`); continue; }
+    const oldStatus = c.status;
+    c.status = status;
+    c.last_updated = today;
+    console.log(`\n  ${statusIcon(oldStatus)} ${id}  →  ${statusIcon(status)} ${status}  ${DIM}(saved)${RESET}`);
+  }
+  manifest.last_updated = today;
   fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
-  console.log(`\n  ${statusIcon(oldStatus)} ${id}  →  ${statusIcon(status)} ${status}  ${DIM}(saved)${RESET}\n`);
+  console.log();
 }
 
 function cmdAssets(assetsManifest, flags) {
@@ -577,7 +582,7 @@ ${BOLD}Commands:${RESET}
   deps <id>                  Dependency tree for a component
   blocked                    Show blocked and dependency-waiting components
   context <id>               ${BOLD}AI porting brief${RESET} — all info needed to port this component
-  set <id> <status>          Update a component's status in the manifest
+  set <id> [id2...] <status> Update one or more component statuses in the manifest
   assets [--status=] [--type=]  Asset manifest summary
   search <term>              Find components by keyword
 
@@ -594,6 +599,7 @@ ${BOLD}Examples:${RESET}
   node port-query.js context entity/plumpy
   node port-query.js list --status=pending --type=entity
   node port-query.js set entity/plumpy in-progress
+  node port-query.js set types/game-data system/game-constants system/settings done
   node port-query.js blocked
 `);
 }
@@ -637,12 +643,16 @@ switch (command) {
     break;
   case 'context':
     if (!positional[1]) die('Usage: context <id>');
-    cmdContext(manifest, positional[1], assetsManifest);
+    cmdContext(manifest, manifestPath, positional[1], assetsManifest);
     break;
-  case 'set':
-    if (!positional[1] || !positional[2]) die('Usage: set <id> <status>');
-    cmdSet(manifest, manifestPath, positional[1], positional[2]);
+  case 'set': {
+    // set <id1> [id2...] <status>  — last positional arg is the status
+    if (positional.length < 3) die('Usage: set <id> [id2...] <status>');
+    const setStatus = positional[positional.length - 1];
+    const setIds = positional.slice(1, positional.length - 1);
+    cmdSet(manifest, manifestPath, setIds, setStatus);
     break;
+  }
   case 'assets':
     cmdAssets(assetsManifest, flags);
     break;
