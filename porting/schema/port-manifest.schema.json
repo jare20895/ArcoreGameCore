@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ArcoreGameCore Port Manifest",
+  "description": "Tracks every source component and its porting status to Godot 4 C#.",
+  "type": "object",
+  "required": ["game", "source_root", "godot_project", "components"],
+  "properties": {
+    "game":           { "type": "string", "description": "Game display name" },
+    "version":        { "type": "string" },
+    "source_root":    { "type": "string", "description": "Path to Phaser source root relative to manifest" },
+    "godot_project":  { "type": "string", "description": "Path to Godot project relative to manifest" },
+    "last_updated":   { "type": "string", "format": "date" },
+    "components": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/Component" }
+    }
+  },
+  "definitions": {
+    "Component": {
+      "type": "object",
+      "required": ["id", "type", "source_file", "source_lines", "status", "complexity"],
+      "properties": {
+        "id":            { "type": "string", "description": "Unique slug, e.g. entity/plumpy" },
+        "type":          { "type": "string", "enum": ["entity", "scene", "boss", "system", "data", "ui", "telemetry", "types", "entry"] },
+        "label":         { "type": "string", "description": "Human-readable display name" },
+        "source_file":   { "type": "string", "description": "Path relative to source_root" },
+        "source_lines":  { "type": "integer" },
+        "godot_scene":   { "type": ["string", "null"], "description": "res:// target scene path, null if script-only" },
+        "godot_script":  { "type": ["string", "null"], "description": "res:// target C# script path" },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "in-progress", "done", "blocked", "skipped", "framework"]
+        },
+        "complexity":    { "type": "string", "enum": ["low", "medium", "high", "very-high"] },
+        "priority":      { "type": "integer", "description": "Port order weight: 1=first, higher=later" },
+        "dependencies":  { "type": "array", "items": { "type": "string" }, "description": "Component IDs this depends on" },
+        "blocked_by":    { "type": ["string", "null"], "description": "Reason if status=blocked" },
+        "estimated_hours": { "type": ["number", "null"] },
+        "notes":         { "type": "string", "description": "One-line summary of porting considerations" },
+        "notes_file":    { "type": ["string", "null"], "description": "Path to detailed porting notes .md" },
+        "last_updated":  { "type": ["string", "null"], "format": "date" }
+      }
+    }
+  }
+}

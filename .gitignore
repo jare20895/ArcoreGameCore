@@ -1,0 +1,22 @@
+# Godot
+.godot/
+*.import
+
+# C# / .NET
+.mono/
+obj/
+bin/
+*.user
+.vs/
+.idea/
+
+# Export builds
+builds/
+
+# Android keystores — never commit release keystore
+*.keystore
+*.jks
+
+# OS
+.DS_Store
+Thumbs.db
