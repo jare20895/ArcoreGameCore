@@ -35,11 +35,10 @@ public partial class SceneRouter : Node
 
         EmitSignal(SignalName.SceneChangeStarted, scenePath);
 
-        if (useTransition)
+        if (useTransition && ScreenTransition.Instance != null)
         {
             _transitioning = true;
-            // Transition overlay fires scene change then clears _transitioning via signal
-            ScreenTransition.Instance?.PlayOutro(() => DoSceneChange(scenePath));
+            ScreenTransition.Instance.PlayOutro(() => DoSceneChange(scenePath));
         }
         else
         {

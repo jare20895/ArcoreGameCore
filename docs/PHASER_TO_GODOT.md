@@ -200,3 +200,46 @@ void ScheduleAction() {
 
 void CancelAction() { _timer = null; }   // next timeout fires but the guard skips it
 ```
+
+### `SceneRouter.GoTo()` silently does nothing when ScreenTransition is absent
+
+`GoTo()` defaults to `useTransition: true`. If your scene has no `ScreenTransition` node,
+`ScreenTransition.Instance` is null and `?.PlayOutro(...)` is a silent no-op — the scene
+never changes and `_transitioning` stays true, locking out all future navigation.
+
+The framework already guards against this (null-check falls through to direct change),
+but if you override `SceneRouter` make sure you replicate the fallback:
+```csharp
+if (useTransition && ScreenTransition.Instance != null)
+    ScreenTransition.Instance.PlayOutro(() => DoSceneChange(scenePath));
+else
+    DoSceneChange(scenePath);  // don't forget to clear _transitioning inside DoSceneChange
+```
+
+### PauseMenu must set `ProcessMode = WhenPaused`
+
+When `GetTree().Paused = true`, nodes with the default `Inherit` process mode stop receiving
+`_UnhandledInput`. A pause menu that doesn't set `ProcessMode = WhenPaused` in `_Ready()`
+cannot be dismissed by the player — the game is stuck.
+
+```csharp
+public override void _Ready()
+{
+    ProcessMode = ProcessModeEnum.WhenPaused;
+    // ...
+}
+```
+
+### Don't open the PauseMenu to show objectives at level start
+
+Calling `PauseMenu.Show(objectiveText)` to display an objective at the start of a level
+pauses the tree immediately — the player starts in a frozen game. Instead, set the objective
+text without calling `Open()`:
+
+```csharp
+// In your LevelScene base class _Ready:
+PauseMenu.SetObjective(ObjectiveText);   // stores text, doesn't pause
+
+// Only Open() when the player actually presses pause:
+private void Toggle() { if (Visible) Close(); else Open(); }
+```
